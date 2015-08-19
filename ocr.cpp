@@ -29,6 +29,8 @@ void OCR::preprocess(Mat src, Mat & dst)
 	resize(src, dst, Size(0,0), RESIZERATIO, RESIZERATIO);
 	cvtColor(dst, dst, COLOR_BGR2GRAY);
 	threshold(dst, dst, THRESH, 255, THRESH_BINARY_INV);
+	// dst = dst(Rect(0, 3, dst.cols, dst.rows-3));
+	// threshold(dst, dst, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
 	
 	// imshow("bin", dst);
 	// waitKey(0);
@@ -97,7 +99,7 @@ string OCR::getText(Rect mask)
 
 	tesseract::TessBaseAPI *api = new tesseract::TessBaseAPI();
 
-	if (api -> Init(NULL, "eng"))
+	if (api -> Init(NULL, "eng+fra+ita+deu"))
 	{
 		fprintf(stderr, "Could not initialize tesseract.\n");
 		exit(-1);

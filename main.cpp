@@ -1,6 +1,7 @@
 #include "ocr.h"
 #include <iostream>
 #include <fstream>
+#include <locale>
 using namespace cv;
 using namespace std;
 
@@ -8,8 +9,19 @@ vector<string> split(string s);
 double getScore(vector<string> a, vector<string> b);
 double getWordScore(string a, string b);
 string join(vector<string> sVec);
+string tailRemove(string a);
 
 int main(int argc, char** argv)
+{
+	Mat src = imread(argv[1], IMREAD_COLOR);
+	OCR ocr(src);
+	string ocrText = ocr.getText();
+	cout << ocrText << endl;
+	cout << tailRemove(ocrText) << endl;
+	return 0;
+}
+
+int amain(int argc, char** argv)
 {
 	double allScore = 0;
 	for (int i = 1; i <= 200; ++i)
@@ -17,6 +29,7 @@ int main(int argc, char** argv)
 		Mat src = imread(string("textImg/")+to_string(i)+".png", IMREAD_COLOR);
 		OCR ocr(src);
 		string ocrText = ocr.getText();
+		ocrText = tailRemove(ocrText);
 		//cout << ocrText << endl;
 		vector<string> ocrVec = split(ocrText);
 		ocrText = join(ocrVec);
@@ -150,5 +163,50 @@ double getWordScore(string a, string b)
 		delete [] score[i];
 	delete [] score;
 
+	return ret;
+}
+
+string tailRemove(string s)
+{
+	locale loc("en_US.UTF-8");
+	vector<string> ocrVec = split(s);
+	vector<string>::iterator it;
+	for (it = ocrVec.begin(); it != ocrVec.end(); ++it)
+	{
+		bool valid = false;
+		for (int j = 0; j < it->size(); ++j)
+		{
+			if (!ispunct((*it)[j], loc))
+			{
+				valid = true;
+				break;
+			}
+		}
+		if (valid) 
+			break;
+		else
+		{
+			it = ocrVec.erase(it);
+		}
+	}
+	for (it = ocrVec.end() - 1; it != ocrVec.begin() - 1; --it)
+	{
+		bool valid = false;
+		for (int j = 0; j < it->size(); ++j)
+		{
+			if (!ispunct((*it)[j], loc))
+			{
+				valid = true;
+				break;
+			}
+		}
+		if (valid) 
+			break;
+		else
+		{
+			it = ocrVec.erase(it);
+		}
+	}
+	string ret = join(ocrVec);
 	return ret;
 }
