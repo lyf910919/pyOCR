@@ -11,7 +11,7 @@ double getWordScore(string a, string b);
 string join(vector<string> sVec);
 string tailRemove(string a);
 
-int main(int argc, char** argv)
+int amain(int argc, char** argv)
 {
 	Mat src = imread(argv[1], IMREAD_COLOR);
 	OCR ocr(src);
@@ -21,7 +21,7 @@ int main(int argc, char** argv)
 	return 0;
 }
 
-int amain(int argc, char** argv)
+int main(int argc, char** argv)
 {
 	double allScore = 0;
 	for (int i = 1; i <= 200; ++i)
@@ -33,7 +33,7 @@ int amain(int argc, char** argv)
 		//cout << ocrText << endl;
 		vector<string> ocrVec = split(ocrText);
 		ocrText = join(ocrVec);
-		cout << ocrText << endl;
+		//cout << ocrText << endl;
 		// for (int i = 0; i < ocrVec.size(); ++i)
 		// 	cout << ocrVec[i] << " ";
 		// cout << endl;
@@ -48,13 +48,20 @@ int amain(int argc, char** argv)
 		//cout << read << endl;
 		vector<string> readVec = split(read);
 		read = join(readVec);
-		cout << read << endl;
+		//cout << read << endl;
 		// for (int i = 0; i < readVec.size(); ++i)
 		// 	cout << readVec[i] << " ";
 		// cout << endl;
 		//double score = getScore(ocrVec, readVec);
 		double score = getWordScore(ocrText, read);
-		cout << "score: " << score << endl;
+		if (score < 1)
+		{
+			cout << i << endl;
+			cout << ocrText << endl;
+			cout << read << endl;
+			cout << "score: " << score << endl;
+		}
+		
 		allScore += score; 
 	}
 	allScore /= 200;
