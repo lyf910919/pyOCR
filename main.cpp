@@ -14,8 +14,8 @@ string tailRemove(string a);
 int amain(int argc, char** argv)
 {
 	Mat src = imread(argv[1], IMREAD_COLOR);
-	OCR ocr(src);
-	string ocrText = ocr.getText();
+	OCR ocr;
+	string ocrText = ocr.getText(src);
 	cout << ocrText << endl;
 	cout << tailRemove(ocrText) << endl;
 	return 0;
@@ -24,11 +24,12 @@ int amain(int argc, char** argv)
 int main(int argc, char** argv)
 {
 	double allScore = 0;
+	///initiate OCR engine
+	OCR ocr;
 	for (int i = 1; i <= 200; ++i)
 	{
 		Mat src = imread(string("textImg/")+to_string(i)+".png", IMREAD_COLOR);
-		OCR ocr(src);
-		string ocrText = ocr.getText();
+		string ocrText = ocr.getText(src);
 		ocrText = tailRemove(ocrText);
 		//cout << ocrText << endl;
 		vector<string> ocrVec = split(ocrText);

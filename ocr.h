@@ -10,14 +10,13 @@
 class OCR
 {
 public:
-	OCR(cv::Mat src);
-	std::string getText();
-	std::string getText(cv::Rect mask);
-	~OCR(){};
+	OCR();
+	std::string getText(cv::Mat src);
+	std::string getText(cv::Mat src, cv::Rect mask);
+	~OCR();
 
 private:
-	cv::Mat src;
-	std::string text;
+	tesseract::TessBaseAPI *api;
 	void preprocess(cv::Mat src, cv::Mat & dst);
 	void preprocess(cv::Mat src, cv::Mat & dst, cv::Rect mask);
 	static const double RESIZERATIO;

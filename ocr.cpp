@@ -5,17 +5,33 @@ using namespace cv;
 const double OCR::RESIZERATIO = 5;
 const int OCR::THRESH = 180;
 
-OCR::OCR(Mat _src)
+OCR::OCR()
 {
-	if (!_src.data)
+	///initiate tesseract engine
+	api = new tesseract::TessBaseAPI();
+	char *configs[] = {"myconfig"};
+	int configs_size = 1;
+	if (!api -> SetVariable("use_definite_ambigs_for_classifier", "1"))
 	{
-		cerr << "Constructor: No image data!" << endl;
+		cerr << "Unable to set use_definite_ambigs_for_adaption" <<endl;
+		exit(-1);
 	}
-	else
+	if (!api -> SetVariable("use_ambigs_for_adaption", "1"))
 	{
-		_src.copyTo(src);
+		cerr << "Unable to set use_ambigs_for_adaption" <<endl;
+		exit(-1);
 	}
-	text = "";
+
+	if (api -> Init(NULL, "eng2+fra2+deu2+ita2", tesseract::OEM_DEFAULT, configs, configs_size, NULL, NULL, false))
+	{
+		fprintf(stderr, "Could not initialize tesseract.\n");
+		exit(-1);
+	}
+}
+
+OCR::~OCR()
+{
+	api -> End();
 }
 
 void OCR::preprocess(Mat src, Mat & dst)
@@ -84,7 +100,7 @@ void OCR::preprocess(Mat src, Mat & dst, Rect mask)
 	// waitKey(0);
 }
 
-string OCR::getText()
+string OCR::getText(Mat src)
 {
 	if (!src.data)
 	{
@@ -92,15 +108,9 @@ string OCR::getText()
 		return string("");
 	}
 
-	tesseract::TessBaseAPI *api = new tesseract::TessBaseAPI();
-	char *configs[] = {"myconfig"};
-	int configs_size = 1;
-
-	if (api -> Init(NULL, "eng2+fra2+ita2+deu2", tesseract::OEM_DEFAULT, configs, configs_size, NULL, NULL, false))
-	{
-		fprintf(stderr, "Could not initialize tesseract.\n");
-		exit(-1);
-	}
+	// tesseract::TessBaseAPI *api = new tesseract::TessBaseAPI();
+	// char *configs[] = {"myconfig"};
+	// int configs_size = 1;
 	// if (!api -> SetVariable("use_definite_ambigs_for_classifier", "1"))
 	// {
 	// 	cerr << "Unable to set use_definite_ambigs_for_adaption" <<endl;
@@ -112,6 +122,13 @@ string OCR::getText()
 	// 	exit(-1);
 	// }
 
+	// if (api -> Init(NULL, "eng2+fra2+deu2+ita2", tesseract::OEM_DEFAULT, configs, configs_size, NULL, NULL, false))
+	// {
+	// 	fprintf(stderr, "Could not initialize tesseract.\n");
+	// 	exit(-1);
+	// }
+	
+
 
 
 	Mat dst;
@@ -122,15 +139,15 @@ string OCR::getText()
 	
 	//Get OCR result
 	char *outText = api -> GetUTF8Text();
-	this -> text = outText;
+	string text = outText;
 
-	api -> End();
+	// api -> End();
 	delete [] outText;
 	//pixDestroy(&image);
-	return this -> text;
+	return text;
 }
 
-string OCR::getText(Rect mask)
+string OCR::getText(Mat src, Rect mask)
 {
 	if (!src.data)
 	{
@@ -138,13 +155,13 @@ string OCR::getText(Rect mask)
 		return string("");
 	}
 
-	tesseract::TessBaseAPI *api = new tesseract::TessBaseAPI();
+	// tesseract::TessBaseAPI *api = new tesseract::TessBaseAPI();
 
-	if (api -> Init(NULL, "eng2+fra+ita+deu"))
-	{
-		fprintf(stderr, "Could not initialize tesseract.\n");
-		exit(-1);
-	}
+	// if (api -> Init(NULL, "eng2+fra+ita+deu"))
+	// {
+	// 	fprintf(stderr, "Could not initialize tesseract.\n");
+	// 	exit(-1);
+	// }
 
 	Mat dst;
 	preprocess(src, dst, mask);
@@ -154,10 +171,10 @@ string OCR::getText(Rect mask)
 	
 	//Get OCR result
 	char *outText = api -> GetUTF8Text();
-	this -> text = outText;
+	string text = outText;
 
-	api -> End();
+	// api -> End();
 	delete [] outText;
 	//pixDestroy(&image);
-	return this -> text;
+	return text;
 }
