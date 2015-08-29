@@ -11,7 +11,7 @@ double getWordScore(string a, string b);
 string join(vector<string> sVec);
 string tailRemove(string a);
 
-int amain(int argc, char** argv)
+int main(int argc, char** argv)
 {
 	Mat src = imread(argv[1], IMREAD_COLOR);
 	OCR ocr;
@@ -21,7 +21,7 @@ int amain(int argc, char** argv)
 	return 0;
 }
 
-int main(int argc, char** argv)
+int amain(int argc, char** argv)
 {
 	double allScore = 0;
 	///initiate OCR engine
