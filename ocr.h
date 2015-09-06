@@ -21,6 +21,9 @@ private:
 	void preprocess(cv::Mat src, cv::Mat & dst, cv::Rect mask);
 	static const double RESIZERATIO;
 	static const int THRESH;
+	static const int AREA_THRESH;
+	static const int MARGIN_THRESH;
+	static const int GAP_THRESH;
 };
 
 #endif

@@ -4,6 +4,9 @@ using namespace cv;
 
 const double OCR::RESIZERATIO = 5;
 const int OCR::THRESH = 180;
+const int OCR::AREA_THRESH = 50;
+const int OCR::MARGIN_THRESH = 10;
+const int OCR::GAP_THRESH = 15;
 
 OCR::OCR()
 {
@@ -43,32 +46,116 @@ void OCR::preprocess(Mat src, Mat & dst)
 	}
 
 	resize(src, dst, Size(0,0), RESIZERATIO, RESIZERATIO, CV_INTER_CUBIC);
-	imshow("resize", dst);
-	waitKey();
-	cvtColor(dst, dst, COLOR_BGR2GRAY);
-	threshold(dst, dst, THRESH, 255, THRESH_BINARY_INV);
+	// imshow("resize", dst);
+	// waitKey();
+
+	////threshold each channel seperately, better removing noise
+	vector<Mat> chans(3), dest(3);
+	split(dst, chans);
+	for (int i = 0; i < 3; ++i)
+	{
+		threshold(chans[i], dest[i], THRESH, 255, THRESH_BINARY_INV);
+		// imshow(to_string(i)+"thresh", dest[i]);
+		// waitKey();
+	}
+	Mat comb;
+	dest[0].copyTo(comb);
+	for (int i = 1; i < chans.size(); ++i)
+	{
+		bitwise_and(comb, dest[i], comb);
+	}
+	// imshow("comb", comb);
+	// waitKey(0);
+	comb.copyTo(dst);
+
+	// cvtColor(dst, dst, COLOR_BGR2GRAY);
+	// threshold(dst, dst, THRESH, 255, THRESH_BINARY_INV);
 	// imshow("thresh", dst);
 	// waitKey();
 
 	// dst = dst(Rect(0, 3, dst.cols, dst.rows-3));
 	// threshold(dst, dst, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
 
-	//TODO: only fill small regions near margin
-	Mat cp;
-	dst.copyTo(cp);
-	vector<vector<Point> > contours;
-	vector<Vec4i> hierarchy;
-	Mat canvas = Mat::zeros(dst.size(), CV_8UC3);
-	findContours(cp, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-	for (int i = 0; i < contours.size(); ++i)
+	////get horizontal projection, and remove margin noise 
+	Mat projection;
+	reduce(dst, projection, 0, CV_REDUCE_MAX);
+	int cnt = 0, leftMargin = 0, rightMargin = projection.cols-1;
+	// cout << projection << endl;
+	for (int i = 0; i < projection.cols / 6; ++i)
 	{
-		cout << contourArea(contours[i]) << endl;
-		drawContours(canvas, contours, i, Scalar::all(255), CV_FILLED);
-		imshow("contours", canvas);
-		waitKey();
+		// cout << (int)projection.at<uchar>(0, i) << endl;
+		if (projection.at<uchar>(0, i) == 0)
+		{
+			++cnt;
+		}
+		else
+		{
+			if (cnt > GAP_THRESH)
+			{
+				leftMargin = i;
+			}
+			cnt = 0;
+		}
 	}
+	cnt = 0;
+	for (int i = projection.cols - 1; i >= projection.cols * 5 / 6; --i)
+	{
+		if (projection.at<uchar>(0, i) == 0)
+		{
+			++cnt;
+		}
+		else
+		{
+			if (cnt > GAP_THRESH)
+			{
+				rightMargin = i;
+			}
+			cnt = 0;
+		}
+	}
+	// cout << leftMargin << " " << rightMargin << endl;
+	rectangle(dst, Rect(0, 0, leftMargin-1, dst.rows), Scalar::all(0), CV_FILLED);
+	rectangle(dst, Rect(rightMargin+1, 0, dst.cols-1, dst.rows), Scalar::all(0), CV_FILLED);
+	// imshow("filled", dst);
+	// waitKey(0);
 
-	// //floodFill margin white area
+	////only fill small regions near margin
+	// Mat cp;
+	// dst.copyTo(cp);
+	// vector<vector<Point> > contours;
+	// vector<Vec4i> hierarchy;
+	// Mat canvas = Mat::zeros(dst.size(), CV_8UC3);
+	// findContours(cp, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+	// for (int i = 0; i < contours.size(); ++i)
+	// {
+	// 	int area = contourArea(contours[i]);
+	// 	cout << area << endl;
+	// 	// if (area < AREA_THRESH)
+	// 	// {
+	// 		int l = contours[i][0].x, r = contours[i][0].x, 
+	// 		u = contours[i][0].y, d = contours[i][0].y;
+	// 		for (int j = 1; j < contours[i].size(); ++j)
+	// 		{
+	// 			if (contours[i][j].x < l) l = contours[i][j].x;
+	// 			if (contours[i][j].x > r) r = contours[i][j].x;
+	// 			if (contours[i][j].y < u) u = contours[i][j].y;
+	// 			if (contours[i][j].y > d) d = contours[i][j].y;
+	// 		}
+	// 		cout << "height: " << d - u << endl;
+	// 		// if (l < MARGIN_THRESH || src.cols - r < MARGIN_THRESH ||
+	// 		// 	u < MARGIN_THRESH || src.rows - d < MARGIN_THRESH)
+	// 		// {
+	// 			drawContours(canvas, contours, i, Scalar::all(255), CV_FILLED);
+	// 			imshow("contours", canvas);
+	// 			waitKey();
+	// 			// drawContours(dst, contours, i, Scalar::all(0), CV_FILLED);
+	// 			// drawContours(dst, contours, i, Scalar::all(0), 2);
+	// 		// }
+	// 	// }
+		
+	// }
+
+	////floodFill margin white area
 	// for (int i = 0; i < dst.rows; ++i)
 	// {
 	// 	if (dst.at<uchar>(i, 0) != 0)
@@ -87,8 +174,8 @@ void OCR::preprocess(Mat src, Mat & dst)
 
 	
 	
-	imshow("bin", dst);
-	waitKey(0);
+	// imshow("bin", dst);
+	// waitKey(0);
 
 	//erode binary image
 	// erode(dst, dst, Mat());
