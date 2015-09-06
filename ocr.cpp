@@ -46,8 +46,8 @@ void OCR::preprocess(Mat src, Mat & dst)
 	}
 
 	resize(src, dst, Size(0,0), RESIZERATIO, RESIZERATIO, CV_INTER_CUBIC);
-	// imshow("resize", dst);
-	// waitKey();
+	imshow("resize", dst);
+	waitKey();
 
 	////threshold each channel seperately, better removing noise
 	vector<Mat> chans(3), dest(3);
@@ -64,8 +64,8 @@ void OCR::preprocess(Mat src, Mat & dst)
 	{
 		bitwise_and(comb, dest[i], comb);
 	}
-	// imshow("comb", comb);
-	// waitKey(0);
+	imshow("comb", comb);
+	waitKey(0);
 	comb.copyTo(dst);
 
 	// cvtColor(dst, dst, COLOR_BGR2GRAY);
@@ -93,6 +93,7 @@ void OCR::preprocess(Mat src, Mat & dst)
 			if (cnt > GAP_THRESH)
 			{
 				leftMargin = i;
+				break;
 			}
 			cnt = 0;
 		}
@@ -109,6 +110,7 @@ void OCR::preprocess(Mat src, Mat & dst)
 			if (cnt > GAP_THRESH)
 			{
 				rightMargin = i;
+				break;
 			}
 			cnt = 0;
 		}
@@ -174,8 +176,8 @@ void OCR::preprocess(Mat src, Mat & dst)
 
 	
 	
-	// imshow("bin", dst);
-	// waitKey(0);
+	imshow("bin", dst);
+	waitKey(0);
 
 	//erode binary image
 	// erode(dst, dst, Mat());
@@ -185,15 +187,7 @@ void OCR::preprocess(Mat src, Mat & dst)
 
 void OCR::preprocess(Mat src, Mat & dst, Rect mask)
 {
-	if (!src.data)
-	{
-		cerr << "Preprocess: No image data!" << endl;
-		return;
-	}
-
-	resize(src, dst, Size(0,0), RESIZERATIO, RESIZERATIO);
-	cvtColor(dst, dst, COLOR_BGR2GRAY);
-	threshold(dst, dst, THRESH, 255, THRESH_BINARY_INV);
+	preprocess(src, dst);
 
 	///delete poi label in binary image
 	Rect resizedRect(mask.x * RESIZERATIO, mask.y * RESIZERATIO,
