@@ -1,9 +1,10 @@
 #include "ocr.h"
+#define LOG 1
 using namespace std;
 using namespace cv;
 
 const double OCR::RESIZERATIO = 5;
-const int OCR::THRESH = 180;
+const int OCR::THRESH = 190;
 const int OCR::AREA_THRESH = 50;
 const int OCR::MARGIN_THRESH = 10;
 const int OCR::GAP_THRESH = 15;
@@ -24,6 +25,7 @@ OCR::OCR()
 		cerr << "Unable to set use_ambigs_for_adaption" <<endl;
 		exit(-1);
 	}
+	api -> SetPageSegMode(tesseract::PSM_SINGLE_BLOCK);
 
 	if (api -> Init(NULL, "eng2+fra2+deu2+ita2", tesseract::OEM_DEFAULT, configs, configs_size, NULL, NULL, false))
 	{
@@ -46,8 +48,12 @@ void OCR::preprocess(Mat src, Mat & dst)
 	}
 
 	resize(src, dst, Size(0,0), RESIZERATIO, RESIZERATIO, CV_INTER_CUBIC);
-	imshow("resize", dst);
-	waitKey();
+	if (LOG)
+	{
+		imshow("resize", dst);
+		waitKey();
+	}
+	
 
 	////threshold each channel seperately, better removing noise
 	vector<Mat> chans(3), dest(3);
@@ -64,8 +70,12 @@ void OCR::preprocess(Mat src, Mat & dst)
 	{
 		bitwise_and(comb, dest[i], comb);
 	}
-	imshow("comb", comb);
-	waitKey(0);
+	if (LOG)
+	{
+		imshow("comb", comb);
+		waitKey(0);
+	}
+	
 	comb.copyTo(dst);
 
 	// cvtColor(dst, dst, COLOR_BGR2GRAY);
@@ -175,9 +185,12 @@ void OCR::preprocess(Mat src, Mat & dst)
 	
 
 	
+	if (LOG)
+	{
+		imshow("bin", dst);
+		waitKey(0);
+	}
 	
-	imshow("bin", dst);
-	waitKey(0);
 
 	//erode binary image
 	// erode(dst, dst, Mat());

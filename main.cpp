@@ -26,20 +26,23 @@ int amain(int argc, char** argv)
 	double allScore = 0;
 	///initiate OCR engine
 	OCR ocr;
+	int wordCnt = 0;
 	for (int i = 1; i <= 200; ++i)
 	{
-		Mat src = imread(string("textImg/")+to_string(i)+".png", IMREAD_COLOR);
+		//cout << i << endl;
+		Mat src = imread(string("textImg2/")+to_string(i)+".png", IMREAD_COLOR);
 		string ocrText = ocr.getText(src);
 		ocrText = tailRemove(ocrText);
 		//cout << ocrText << endl;
 		vector<string> ocrVec = split(ocrText);
+		wordCnt += ocrVec.size();
 		ocrText = join(ocrVec);
 		//cout << ocrText << endl;
 		// for (int i = 0; i < ocrVec.size(); ++i)
 		// 	cout << ocrVec[i] << " ";
 		// cout << endl;
 		
-		ifstream infile(string("text/")+to_string(i)+".txt");
+		ifstream infile(string("text2/")+to_string(i)/*+".txt"*/);
 		string read(""), temp;
 		while (getline(infile, temp))
 		{
@@ -67,6 +70,7 @@ int amain(int argc, char** argv)
 	}
 	allScore /= 200;
 	cout << "avg score: " << allScore << endl;
+	cout << "number of words: " << wordCnt << endl;
 	return 0;
 }
 
