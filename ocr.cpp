@@ -1,4 +1,5 @@
 #include "ocr.h"
+#include <cmath>
 #define LOG 1
 using namespace std;
 using namespace cv;
@@ -8,6 +9,7 @@ const int OCR::THRESH = 190;
 const int OCR::AREA_THRESH = 50;
 const int OCR::MARGIN_THRESH = 10;
 const int OCR::GAP_THRESH = 15;
+const int OCR::COLOR_THRESH = 50;
 
 OCR::OCR()
 {
@@ -48,6 +50,8 @@ void OCR::preprocess(Mat src, Mat & dst)
 	}
 
 	resize(src, dst, Size(0,0), RESIZERATIO, RESIZERATIO, CV_INTER_CUBIC);
+	Mat resized;
+	dst.copyTo(resized);
 	if (LOG)
 	{
 		imshow("resize", dst);
@@ -127,45 +131,70 @@ void OCR::preprocess(Mat src, Mat & dst)
 	}
 	// cout << leftMargin << " " << rightMargin << endl;
 	rectangle(dst, Rect(0, 0, leftMargin-1, dst.rows), Scalar::all(0), CV_FILLED);
+	rectangle(dst, Rect(0, 0, leftMargin-1, dst.rows), Scalar::all(0), 2);
 	rectangle(dst, Rect(rightMargin+1, 0, dst.cols-1, dst.rows), Scalar::all(0), CV_FILLED);
+	rectangle(dst, Rect(rightMargin+1, 0, dst.cols-1, dst.rows), Scalar::all(0), 2);
+	
 	// imshow("filled", dst);
 	// waitKey(0);
 
-	////only fill small regions near margin
-	// Mat cp;
-	// dst.copyTo(cp);
-	// vector<vector<Point> > contours;
-	// vector<Vec4i> hierarchy;
-	// Mat canvas = Mat::zeros(dst.size(), CV_8UC3);
-	// findContours(cp, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-	// for (int i = 0; i < contours.size(); ++i)
-	// {
-	// 	int area = contourArea(contours[i]);
-	// 	cout << area << endl;
-	// 	// if (area < AREA_THRESH)
-	// 	// {
-	// 		int l = contours[i][0].x, r = contours[i][0].x, 
-	// 		u = contours[i][0].y, d = contours[i][0].y;
-	// 		for (int j = 1; j < contours[i].size(); ++j)
-	// 		{
-	// 			if (contours[i][j].x < l) l = contours[i][j].x;
-	// 			if (contours[i][j].x > r) r = contours[i][j].x;
-	// 			if (contours[i][j].y < u) u = contours[i][j].y;
-	// 			if (contours[i][j].y > d) d = contours[i][j].y;
-	// 		}
-	// 		cout << "height: " << d - u << endl;
-	// 		// if (l < MARGIN_THRESH || src.cols - r < MARGIN_THRESH ||
-	// 		// 	u < MARGIN_THRESH || src.rows - d < MARGIN_THRESH)
-	// 		// {
-	// 			drawContours(canvas, contours, i, Scalar::all(255), CV_FILLED);
-	// 			imshow("contours", canvas);
-	// 			waitKey();
-	// 			// drawContours(dst, contours, i, Scalar::all(0), CV_FILLED);
-	// 			// drawContours(dst, contours, i, Scalar::all(0), 2);
-	// 		// }
-	// 	// }
-		
-	// }
+	////get average color of white area
+	Scalar avgColor = getMaskColor(resized, dst);
+	if (LOG)
+	{
+		cout << "avgColor: " << avgColor << endl;
+	}
+
+
+	//only fill small regions near margin
+	Mat cp;
+	dst.copyTo(cp);
+	vector<vector<Point> > contours;
+	vector<Vec4i> hierarchy;
+	findContours(cp, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
+	for (int i = 0; i < contours.size(); ++i)
+	{
+		Mat canvas = Mat::zeros(dst.size(), CV_8UC1);
+		int area = contourArea(contours[i]);
+		if (LOG)
+		{
+			cout << "contour area: " << area << endl;
+		}
+		if (hierarchy[i][3] < 0)
+		{
+			drawContours(canvas, contours, i, Scalar::all(255), CV_FILLED);
+			if (hierarchy[i][2] >= 0)
+			{
+				int holeInd = hierarchy[i][2];
+				do
+				{
+					drawContours(canvas, contours, holeInd, Scalar::all(0), CV_FILLED);
+					holeInd = hierarchy[holeInd][0];
+				}while(holeInd >= 0);
+			}
+			Scalar contourColor = getMaskColor(resized, canvas);
+			Scalar distVec = contourColor - avgColor;
+			double dist = 0;
+			for (int i = 0; i < 3; ++i)
+			{
+				dist += distVec[i] * distVec[i];
+			}
+			dist = sqrt(dist);
+			if (dist > COLOR_THRESH)
+			{
+				drawContours(dst, contours, i, Scalar::all(0), CV_FILLED);
+				drawContours(dst, contours, i, Scalar::all(0), 2);
+			}
+			if (LOG)
+			{
+				cout << "contour color: " << contourColor << endl;
+				cout << "dist: " << dist << endl;
+				imshow("contours", canvas);
+				waitKey();
+			}
+
+		}		
+	}
 
 	////floodFill margin white area
 	// for (int i = 0; i < dst.rows; ++i)
@@ -288,4 +317,24 @@ string OCR::getText(Mat src, Rect mask)
 	delete [] outText;
 	//pixDestroy(&image);
 	return text;
+}
+
+//src is resize src image, mask is binary image with type CV_8UC1
+Scalar OCR::getMaskColor(cv::Mat src, cv::Mat mask)
+{
+	Mat product(src.rows, src.cols, CV_32FC3);
+	vector<Mat> bin3vec;
+	for (int i = 0; i < 3; ++i)
+	{
+		bin3vec.push_back(mask);
+	}
+	Mat bin3;
+	merge(bin3vec, bin3);
+	bin3.convertTo(bin3, CV_32FC3);
+	divide(bin3, 255, bin3);
+	src.convertTo(src, CV_32FC3);
+	multiply(src, bin3, product);
+	Scalar avgColor;
+	divide(sum(product), sum(bin3), avgColor);
+	return avgColor;
 }
