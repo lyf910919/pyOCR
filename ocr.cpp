@@ -9,7 +9,7 @@ const int OCR::THRESH = 190;
 const int OCR::AREA_THRESH = 50;
 const int OCR::MARGIN_THRESH = 10;
 const int OCR::GAP_THRESH = 15;
-const int OCR::COLOR_THRESH = 50;
+const int OCR::COLOR_THRESH = 65;
 
 OCR::OCR()
 {
@@ -146,7 +146,7 @@ void OCR::preprocess(Mat src, Mat & dst)
 	}
 
 
-	//only fill small regions near margin
+	//remove connected components whose colors are far from average
 	Mat cp;
 	dst.copyTo(cp);
 	vector<vector<Point> > contours;
@@ -187,13 +187,32 @@ void OCR::preprocess(Mat src, Mat & dst)
 			}
 			if (LOG)
 			{
+				Moments mu = moments(contours[i], true);
+				float center_x = mu.m10 / MAX(1, mu.m00);
+				float center_y = mu.m01 / MAX(1, mu.m00);
 				cout << "contour color: " << contourColor << endl;
 				cout << "dist: " << dist << endl;
+				cout << "center: " << center_x << " " << center_y << endl;
+				cout << "m00: " << mu.m00 << endl;
 				imshow("contours", canvas);
 				waitKey();
 			}
 
 		}		
+	}
+
+	////remove connected components whose mass center in margin
+	for (int i = 0; i < contours.size(); ++i)
+	{
+		Moments mu = moments(contours[i], true);
+		float center_x = mu.m10 / MAX(1, mu.m00);
+		float center_y = mu.m01 / MAX(1, mu.m00);
+		if (center_x < MARGIN_THRESH || dst.cols - center_x < MARGIN_THRESH ||
+			center_y < MARGIN_THRESH || dst.rows - center_y < MARGIN_THRESH)
+		{
+			drawContours(dst, contours, i, Scalar::all(0), CV_FILLED);
+			drawContours(dst, contours, i, Scalar::all(0), 2);
+		}
 	}
 
 	////floodFill margin white area
