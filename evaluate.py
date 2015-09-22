@@ -49,6 +49,9 @@ def main():
 	if len(stringList1) != len(stringList2):
 		raise AssertionError('Two lists\' length not match: %s %s' \
 		 % (len(stringList1), len(stringList2)))
+	# with open('label.txt', 'w+') as f:
+	# 	for text in stringList2:
+	# 		print >> f, text
 	scoreList = []
 	scoreListWord = []
 	for i in range(len(stringList1)):
