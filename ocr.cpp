@@ -1,6 +1,6 @@
 #include "ocr.h"
 #include <cmath>
-#define LOG 1
+#define LOG 0
 using namespace std;
 using namespace cv;
 

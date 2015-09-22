@@ -11,7 +11,7 @@ double getWordScore(string a, string b);
 string join(vector<string> sVec);
 string tailRemove(string a);
 
-int main(int argc, char** argv)
+int amain(int argc, char** argv)
 {
 	Mat src = imread(argv[1], IMREAD_COLOR);
 	OCR ocr;
@@ -21,9 +21,25 @@ int main(int argc, char** argv)
 	return 0;
 }
 
-int amain(int argc, char** argv)
+int main(int argc, char** argv)
+{
+	///initiate OCR engine
+	OCR ocr;
+	for (int i = 1; i <= 200; ++i)
+	{
+		//cout << i << endl;
+		Mat src = imread(string("textImg2/")+to_string(i)+".png", IMREAD_COLOR);
+		string ocrText = ocr.getText(src);
+		ocrText = tailRemove(ocrText);
+		cout << ocrText << endl;
+	}
+	return 0;
+}
+
+int bmain(int argc, char** argv)
 {
 	double allScore = 0;
+	double allScoreOnWords = 0;
 	///initiate OCR engine
 	OCR ocr;
 	int wordCnt = 0;
@@ -56,7 +72,7 @@ int amain(int argc, char** argv)
 		// for (int i = 0; i < readVec.size(); ++i)
 		// 	cout << readVec[i] << " ";
 		// cout << endl;
-		//double score = getScore(ocrVec, readVec);
+		double scoreOnWords = getScore(ocrVec, readVec);
 		double score = getWordScore(ocrText, read);
 		if (score < 1)
 		{
@@ -64,12 +80,16 @@ int amain(int argc, char** argv)
 			cout << ocrText << endl;
 			cout << read << endl;
 			cout << "score: " << score << endl;
+			cout << "score on words: " << scoreOnWords << endl;
 		}
 		
-		allScore += score; 
+		allScore += score;
+		allScoreOnWords += scoreOnWords;
 	}
 	allScore /= 200;
+	allScoreOnWords /= 200;
 	cout << "avg score: " << allScore << endl;
+	cout << "avg score on words: " << allScoreOnWords << endl;
 	cout << "number of words: " << wordCnt << endl;
 	return 0;
 }
@@ -122,21 +142,21 @@ double getScore(vector<string> a, vector<string> b)
 
 	for (int i = 0; i < n; ++i)
 	{
-		// score[0][i] = !a[0].compare(b[i]);
-		score[0][i] = getWordScore(a[0], b[i]);
+		score[0][i] = !a[0].compare(b[i]);
+		// score[0][i] = getWordScore(a[0], b[i]);
 	}
 	for (int i = 0; i < m; ++i)
 	{
-		// score[i][0] = !a[i].compare(b[0]);
-		score[i][0] = getWordScore(a[i], b[0]);
+		score[i][0] = !a[i].compare(b[0]);
+		// score[i][0] = getWordScore(a[i], b[0]);
 	}
 
 	for (int i = 1; i < m; ++i)
 	{
 		for (int j = 1; j < n; ++j)
 		{
-			// int curScore = !a[i].compare(b[j]);
-			double curScore = getWordScore(a[i], b[j]);
+			double curScore = !a[i].compare(b[j]);
+			// double curScore = getWordScore(a[i], b[j]);
 			score[i][j] = MAX(MAX(score[i-1][j], score[i][j-1]), 
 				score[i-1][j-1]+curScore);
 		}
